@@ -206,6 +206,8 @@ console.log(`${brokenLinks.length} 個の壊れたリンクが見つかりまし
 
 ## GitHub Actions統合
 
+### npmパッケージとして使用する
+
 ```yaml
 name: Link Check
 
@@ -239,6 +241,54 @@ jobs:
           name: link-check-report
           path: link-check-report.json
 ```
+
+### アクションとして使用する (推奨)
+
+`action.yml`をプロジェクト内に配置することで、このツールをGitHub Actionsのカスタムアクションとして直接利用できます。これにより、依存関係のインストール手順を省略し、より簡潔なワークフローを記述できます。
+
+`.github/workflows/check-links.yml` (例):
+
+```yaml
+name: Check Markdown Links
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # 手動実行を可能にする
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Markdown Link Checker
+        id: link-check # このステップにIDを付与
+        uses: ./tools # action.ymlがあるディレクトリへのパス
+        with:
+          directory: './docs' # チェックしたいディレクトリを指定 (例: docsフォルダ)
+
+      - name: Report Broken Links
+        run: |
+          echo "Found ${{ steps.link-check.outputs.broken_links_count }} broken links."
+          if [ "${{ steps.link-check.outputs.broken_links_count }}" -gt 0 ]; then
+            echo "::error::Broken links found! Please check the report."
+            exit 1
+          fi
+```
+
+**入力 (`inputs`)**:
+
+*   `directory`: チェック対象のディレクトリまたはファイルパス。デフォルトは `.` (カレントディレクトリ)。
+
+**出力 (`outputs`)**:
+
+*   `broken_links_count`: 見つかった壊れたリンクの数。
 
 ## 設定オプション
 
