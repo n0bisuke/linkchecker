@@ -1,7 +1,8 @@
 const { parentPort } = require('worker_threads');
 
 class LinkCheckerWorker {
-  constructor() {
+  constructor(options = {}) {
+    this.ignoreGithubAuth = options.ignoreGithubAuth || false;
     this.excludePatterns = [
       /^mailto:/,
       /^tel:/,
@@ -51,6 +52,42 @@ class LinkCheckerWorker {
       /stripe\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
       /slack\.com\/.*[ぁ-ゟァ-ヶー一-龯]/
     ];
+  }
+
+  /**
+   * GitHub認証が必要なページかどうかを判定
+   */
+  isGithubAuthRequired(url, status) {
+    if (!url.includes('github.com')) {
+      return false;
+    }
+
+    // GitHub認証が必要なパスパターン
+    const authRequiredPatterns = [
+      /github\.com\/orgs\/[^/]+\/projects\//,           // 組織プロジェクト
+      /github\.com\/orgs\/[^/]+\/teams\//,              // チーム管理
+      /github\.com\/[^/]+\/[^/]+\/settings\//,          // リポジトリ設定
+      /github\.com\/settings\//,                        // ユーザー設定  
+      /github\.com\/notifications/,                     // 通知
+      /github\.com\/[^/]+\/[^/]+\/security\//,          // セキュリティ設定
+      /github\.com\/[^/]+\/[^/]+\/pulse/,               // プライベートリポジトリのPulse
+      /github\.com\/[^/]+\/[^/]+\/graphs\//,            // プライベートリポジトリのGraphs
+      /github\.com\/[^/]+\/[^/]+\/network\//,           // プライベートリポジトリのNetwork
+      /github\.com\/[^/]+\/[^/]+\/issues\/\d+/,         // プライベートリポジトリのIssue
+      /github\.com\/[^/]+\/[^/]+\/pull\/\d+/,           // プライベートリポジトリのPR
+    ];
+
+    // パスパターンでのマッチング
+    if (authRequiredPatterns.some(pattern => pattern.test(url))) {
+      return true;
+    }
+
+    // 403 Forbidden または 404 Not Found の場合、GitHub認証が必要な可能性
+    if (status === 403 || status === 404) {
+      return true;
+    }
+
+    return false;
   }
 
   cleanUrl(url) {
@@ -145,6 +182,11 @@ class LinkCheckerWorker {
           });
         }
         
+        // GitHub認証必要ページの判定
+        if (this.ignoreGithubAuth && this.isGithubAuthRequired(url, response.status)) {
+          return null; // GitHub認証必要ページはスキップ
+        }
+
         // 明確な404エラーのみを壊れたリンクとして判定
         const brokenCodes = [404, 410]; // 404 Not Found, 410 Gone のみ
         
@@ -216,8 +258,9 @@ class LinkCheckerWorker {
 }
 
 // ワーカースレッドのメッセージハンドリング
-parentPort.on('message', async (tasks) => {
-  const worker = new LinkCheckerWorker();
+parentPort.on('message', async (data) => {
+  const { tasks, options = {} } = data;
+  const worker = new LinkCheckerWorker(options);
   try {
     const brokenLinks = await worker.processBatch(tasks);
     parentPort.postMessage({ success: true, brokenLinks });

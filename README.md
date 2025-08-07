@@ -30,9 +30,10 @@ npx handson-md-link-checker ./docs
 
 ```bash
 # 基本的な使用方法
-md-link-checker                    # カレントディレクトリをチェック
-md-link-checker ./docs             # docsディレクトリをチェック  
-md-link-checker ./article.md       # 特定のファイルをチェック
+md-link-checker                              # カレントディレクトリをチェック
+md-link-checker ./docs                       # docsディレクトリをチェック  
+md-link-checker --ignore-github-auth ./docs  # GitHub認証ページを除外してチェック
+md-link-checker ./article.md                 # 特定のファイルをチェック
 
 # ヘルプ表示
 md-link-checker --help
@@ -119,6 +120,7 @@ const checker = new LinkChecker({
   maxWorkers: 4,           // 最大ワーカー数
   timeout: 5000,           // タイムアウト時間（ms）
   batchSize: 50,           // バッチサイズ
+  ignoreGithubAuth: true,  // GitHub認証必要ページを除外
   excludePatterns: [       // 追加の除外パターン
     /internal\.example\.com/,
     /test\.localhost/

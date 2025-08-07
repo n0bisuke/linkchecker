@@ -1,6 +1,6 @@
 {
   "name": "handson-md-link-checker",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "高性能並列処理マークダウンリンクチェッカー - Markdown文書内の壊れたリンク（404/410エラー）を検出",
   "main": "index.js",
   "bin": {

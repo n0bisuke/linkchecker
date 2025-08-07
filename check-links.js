@@ -20,9 +20,11 @@ class HTTPAgent {
 }
 
 class LinkChecker {
-  constructor() {
+  constructor(options = {}) {
     this.brokenLinks = [];
     this.checkedUrls = new Set();
+    this.ignoreGithubAuth = options.ignoreGithubAuth || false;
+    this.githubAuthPagesSkipped = 0;
     this.excludePatterns = [
       /^mailto:/,
       /^tel:/,
@@ -74,6 +76,42 @@ class LinkChecker {
     ];
   }
 
+  /**
+   * GitHub認証が必要なページかどうかを判定
+   */
+  isGithubAuthRequired(url, status) {
+    if (!url.includes('github.com')) {
+      return false;
+    }
+
+    // GitHub認証が必要なパスパターン
+    const authRequiredPatterns = [
+      /github\.com\/orgs\/[^/]+\/projects\//,           // 組織プロジェクト
+      /github\.com\/orgs\/[^/]+\/teams\//,              // チーム管理
+      /github\.com\/[^/]+\/[^/]+\/settings\//,          // リポジトリ設定
+      /github\.com\/settings\//,                        // ユーザー設定  
+      /github\.com\/notifications/,                     // 通知
+      /github\.com\/[^/]+\/[^/]+\/security\//,          // セキュリティ設定
+      /github\.com\/[^/]+\/[^/]+\/pulse/,               // プライベートリポジトリのPulse
+      /github\.com\/[^/]+\/[^/]+\/graphs\//,            // プライベートリポジトリのGraphs
+      /github\.com\/[^/]+\/[^/]+\/network\//,           // プライベートリポジトリのNetwork
+      /github\.com\/[^/]+\/[^/]+\/issues\/\d+/,         // プライベートリポジトリのIssue
+      /github\.com\/[^/]+\/[^/]+\/pull\/\d+/,           // プライベートリポジトリのPR
+    ];
+
+    // パスパターンでのマッチング
+    if (authRequiredPatterns.some(pattern => pattern.test(url))) {
+      return true;
+    }
+
+    // 403 Forbidden または 404 Not Found の場合、GitHub認証が必要な可能性
+    if (status === 403 || status === 404) {
+      return true;
+    }
+
+    return false;
+  }
+
   async checkUrl(url, filePath, lineNumber, maxRetries = 2) {
     if (this.checkedUrls.has(url)) {
       return;
@@ -106,6 +144,13 @@ class LinkChecker {
           });
         }
         
+        // GitHub認証必要ページの判定
+        if (this.ignoreGithubAuth && this.isGithubAuthRequired(url, response.status)) {
+          this.githubAuthPagesSkipped++;
+          console.log(`  🔐 GitHub認証必要ページをスキップ: ${url}`);
+          return;
+        }
+
         // 明確な404エラーのみを壊れたリンクとして判定
         const brokenCodes = [404, 410]; // 404 Not Found, 410 Gone のみ
         
@@ -386,7 +431,10 @@ class LinkChecker {
         const chunk = chunks[chunkIndex++];
         workerInfo.busy = true;
 
-        workerInfo.worker.postMessage(chunk);
+        workerInfo.worker.postMessage({ 
+          tasks: chunk, 
+          options: { ignoreGithubAuth: this.ignoreGithubAuth }
+        });
 
         const onMessage = (result) => {
           workerInfo.worker.off('message', onMessage);
@@ -461,6 +509,11 @@ class LinkChecker {
     }
     
     console.log('\n✅ Link check completed');
+    
+    // GitHub認証ページのスキップ数を表示
+    if (this.ignoreGithubAuth && this.githubAuthPagesSkipped > 0) {
+      console.log(`🔐 GitHub認証必要ページを ${this.githubAuthPagesSkipped} 個スキップしました`);
+    }
     
     if (this.brokenLinks.length > 0) {
       console.log(`\n❌ Found ${this.brokenLinks.length} broken links:`);

@@ -8,16 +8,18 @@ function showHelp() {
 handson-md-link-checker - 高性能並列処理マークダウンリンクチェッカー
 
 使用方法:
-  md-link-checker [directory]
+  md-link-checker [options] [directory]
 
 オプション:
-  directory    チェック対象のディレクトリまたはファイル（デフォルト: カレントディレクトリ）
-  -h, --help   このヘルプを表示
+  directory                チェック対象のディレクトリまたはファイル（デフォルト: カレントディレクトリ）
+  -h, --help              このヘルプを表示
+  --ignore-github-auth    GitHub認証が必要なページを除外（推奨）
 
 例:
-  md-link-checker                    # カレントディレクトリをチェック
-  md-link-checker ./docs             # docsディレクトリをチェック
-  md-link-checker ./article.md       # 特定のファイルをチェック
+  md-link-checker                              # カレントディレクトリをチェック
+  md-link-checker ./docs                       # docsディレクトリをチェック
+  md-link-checker --ignore-github-auth ./docs  # GitHub認証ページを除外してチェック
+  md-link-checker ./article.md                 # 特定のファイルをチェック
 
 機能:
   ✓ Worker Threadsによる高速並列処理（最大16ワーカー）
@@ -37,7 +39,7 @@ handson-md-link-checker - 高性能並列処理マークダウンリンクチェ
   • 429 Too Many Requests - レート制限
   • タイムアウト - 一時的な問題
 
-詳細: https://github.com/protoout/po-common-class/tree/main/tools
+詳細: https://github.com/n0bisuke/linkchecker
 `);
 }
 
@@ -50,8 +52,11 @@ async function main() {
     process.exit(0);
   }
   
-  // ディレクトリ引数の取得
-  const directory = args[0] || '.';
+  // オプションの解析
+  const ignoreGithubAuth = args.includes('--ignore-github-auth');
+  
+  // オプションを除いた引数からディレクトリを取得
+  const directory = args.filter(arg => !arg.startsWith('--'))[0] || '.';
   
   try {
     // 絶対パスに変換
@@ -59,9 +64,12 @@ async function main() {
     
     console.log(`🔗 handson-md-link-checker v${require('./package.json').version}`);
     console.log(`📁 Target: ${targetPath}`);
+    if (ignoreGithubAuth) {
+      console.log(`🔐 GitHub認証ページを除外モード: 有効`);
+    }
     console.log('');
     
-    const checker = new LinkChecker();
+    const checker = new LinkChecker({ ignoreGithubAuth });
     await checker.run(targetPath);
     
   } catch (error) {

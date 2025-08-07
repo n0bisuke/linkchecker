@@ -1,0 +1,13 @@
+name: 'Markdown Link Checker'
+description: 'Checks for broken links in Markdown files using handson-md-link-checker'
+inputs:
+  directory:
+    description: 'The directory or file to check for broken links'
+    required: false
+    default: '.'
+outputs:
+  broken_links_count:
+    description: 'The number of broken links found'
+runs:
+  using: 'node16'
+  main: 'cli.js'
