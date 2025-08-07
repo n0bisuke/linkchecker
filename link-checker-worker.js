@@ -28,6 +28,28 @@ class LinkCheckerWorker {
       /your-[\w-]+/,
       /\{[\w-]+\}/,
       /\[[\w\s]+\]/,
+      /<[\w\s-]+>/,  // <ユーザー名>のようなプレースホルダー
+      /○+/,  // ○○○○○のような日本語プレースホルダー
+      // 英語圏ドメインに日本語テキストが含まれる場合（プレースホルダー）
+      /github\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /google\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /microsoft\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /amazon\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /amazonaws\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /facebook\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /twitter\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /linkedin\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /stackoverflow\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /npmjs\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /heroku\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /railway\.app\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /vercel\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /netlify\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /firebase\.google\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /openai\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /docs\.rs\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /stripe\.com\/.*[ぁ-ゟァ-ヶー一-龯]/,
+      /slack\.com\/.*[ぁ-ゟァ-ヶー一-龯]/
     ];
   }
 
@@ -38,6 +60,10 @@ class LinkCheckerWorker {
     url = url.replace(/<[^>]*$/, '');      // 不完全なHTMLタグ
     url = url.replace(/>[^>]*$/, '');      // >以降の文字列
     url = url.replace(/\\".*$/, '');       // \"以降すべて
+    
+    // HTMLタグの終了部分を除去 (scriptタグなど)
+    url = url.replace(/\"><\/.*$/, '');     // "></script など
+    url = url.replace(/\">\s*<\/.*$/, '');  // "> </script など
     
     // Markdownの記載ミス対応: ]( が重複している場合
     url = url.replace(/\]\([^)]*$/, '');   // ](以降を除去
@@ -63,6 +89,32 @@ class LinkCheckerWorker {
     // 末尾の句読点や余分な文字を除去
     url = url.replace(/[.,;!?]+$/, '');
     
+    // JavaScriptのコメント記号や日本語説明文を除去
+    url = url.replace(/\";\/\/.*$/, '');
+    url = url.replace(/\";\s*$/, '');
+    url = url.replace(/;\/\/.*$/, '');
+    url = url.replace(/;.*$/, '');
+    
+    // 末尾のクォート除去
+    url = url.replace(/'$/, '');
+    url = url.replace(/"$/, '');
+    
+    // JavaScriptコード中のカンマやオブジェクト記法を除去
+    url = url.replace(/',\{.*$/, '');     // ',{ で始まる部分
+    url = url.replace(/'\s*,.*$/, '');    // ', で始まる部分
+    url = url.replace(/",\{.*$/, '');     // ",{ で始まる部分
+    url = url.replace(/"\s*,.*$/, '');    // ", で始まる部分
+    
+    // 日本語説明文やバッククォートの文章を除去
+    url = url.replace(/`[ぁ-ゟ]+.*$/, '');
+    url = url.replace(/`を[^`]*$/, '');
+    url = url.replace(/`.*を[^`]*$/, '');
+    url = url.replace(/`[^`]*を[^`]*$/, '');
+    url = url.replace(/`[^`]*ましょう[^`]*$/, '');
+    
+    // 単独のバッククォートも除去
+    url = url.replace(/`$/, '');
+    
     // 末尾の空白を除去
     url = url.trim();
     
@@ -80,7 +132,7 @@ class LinkCheckerWorker {
         // まずHEADリクエストを試す
         let response = await fetch(url, {
           method: 'HEAD',
-          timeout: 15000, // タイムアウトを延長
+          timeout: 8000, // 高速化のためタイムアウト短縮
           redirect: 'follow'
         });
         
@@ -88,7 +140,7 @@ class LinkCheckerWorker {
         if (!response.ok && response.status !== 405) {
           response = await fetch(url, {
             method: 'GET',
-            timeout: 15000,
+            timeout: 8000,
             redirect: 'follow'
           });
         }
@@ -129,8 +181,8 @@ class LinkCheckerWorker {
   }
 
   async processBatch(tasks) {
-    // 安定性重視で並列度をさらに抑制
-    const batchSize = 20; // 20個同時処理（安定性最優先）
+    // 高速化のため並列度を大幅向上
+    const batchSize = 50; // 50個同時処理（高速化優先）
     const allResults = [];
     
     for (let i = 0; i < tasks.length; i += batchSize) {
@@ -152,10 +204,10 @@ class LinkCheckerWorker {
       );
       allResults.push(...batchResults);
       
-      // バッチ間の遅延を増加してネットワーク負荷を軽減
-      if (i + batchSize < tasks.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      // 高速化のため遅延を削除
+      // if (i + batchSize < tasks.length) {
+      //   await new Promise(resolve => setTimeout(resolve, 100));
+      // }
     }
     
     // nullを除外して壊れたリンクのみ返す

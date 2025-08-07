@@ -1,27 +1,33 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the link checker tools in this directory.
+This file provides guidance to Claude Code (claude.ai/code) when working with the handson-md-link-checker npm package.
 
 ## Overview
 
-This directory contains a sophisticated link checker system designed to detect broken links (404/410 errors) in markdown documentation. The system is optimized for accuracy, avoiding false positives from placeholder URLs, access restrictions, and temporary network issues.
+handson-md-link-checker is a sophisticated npm package designed to detect broken links (404/410 errors) in markdown documentation. The system is optimized for accuracy, avoiding false positives from placeholder URLs, access restrictions, and temporary network issues.
 
 ## Key Files
 
 ### Core Scripts
-- `check-links.js` - Main link checker script with Worker Threads support
+- `check-links.js` - Main link checker class with Worker Threads support
 - `link-checker-worker.js` - Worker thread implementation for parallel processing
+- `cli.js` - Command-line interface entry point
+- `index.js` - Programmatic API entry point
 
 ### Execution Methods
 ```bash
-# Direct execution
-node tools/check-links.js [directory]
+# CLI usage (after npm install -g handson-md-link-checker)
+po-link-checker [directory]                    # Check directory or file
+po-link-checker ./docs                         # Check docs folder
+po-link-checker --help                         # Show help
 
-# npm scripts (recommended)
-npm run check-links              # Check entire repository
-npm run check-links:articles     # Check articles/ folder only
-npm run check-links:books        # Check books/ folder only
-npm run check-links:lessons      # Check lessons/ folder only
+# npx usage (one-time execution)
+npx handson-md-link-checker ./docs
+
+# Programmatic usage
+const LinkChecker = require('handson-md-link-checker');
+const checker = new LinkChecker();
+await checker.run('./docs');
 ```
 
 ## Architecture
@@ -142,13 +148,16 @@ schedule:
 ### Development Workflow
 ```bash
 # Before committing changes
-npm run check-links:articles
+po-link-checker ./docs
 
 # Check specific file
-node tools/check-links.js path/to/file.md
+po-link-checker ./path/to/file.md
 
-# Full repository check
-npm run check-links
+# Using npx for one-time check
+npx handson-md-link-checker ./docs
+
+# Programmatic usage
+node -e "const LinkChecker = require('handson-md-link-checker'); new LinkChecker().run('./docs')"
 ```
 
 ### Troubleshooting False Positives
@@ -185,9 +194,16 @@ npm run check-links
 - **Worker counts**: Scale with infrastructure changes
 
 ### Code Organization
-- **Main logic**: `check-links.js` (single-threaded + coordination)
+- **Main logic**: `check-links.js` (LinkChecker class + coordination)
 - **Worker logic**: `link-checker-worker.js` (parallel processing)
+- **CLI interface**: `cli.js` (command-line entry point)
+- **Programmatic API**: `index.js` (npm package exports)
 - **Configuration**: Exclusion patterns and settings in constructors
-- **Integration**: npm scripts in `package.json`, GitHub Actions in `.github/workflows/`
+
+### Package Structure
+- **npm package**: `handson-md-link-checker`
+- **CLI command**: `po-link-checker`
+- **GitHub repository**: https://github.com/n0bisuke/linkchecker
+- **npm registry**: https://www.npmjs.com/package/handson-md-link-checker
 
 This system prioritizes accuracy over speed, ensuring that only genuine maintenance issues are reported while avoiding noise from temporary problems or documentation placeholders.

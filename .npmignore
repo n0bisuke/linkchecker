@@ -1,0 +1,42 @@
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Testing and temporary files
+link-check-report.json
+test-results/
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+
+# Git files
+.git
+.gitignore
+
+# npm
+node_modules/
+.npm
+
+# Build artifacts (if any)
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Parent directory files (we don't want to include the parent repo files)
+../
+../../

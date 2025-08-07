@@ -1,0 +1,50 @@
+{
+  "name": "handson-md-link-checker",
+  "version": "0.0.1",
+  "description": "高性能並列処理マークダウンリンクチェッカー - Markdown文書内の壊れたリンク（404/410エラー）を検出",
+  "main": "index.js",
+  "bin": {
+    "po-link-checker": "cli.js"
+  },
+  "scripts": {
+    "test": "node cli.js ../articles/",
+    "test:books": "node cli.js ../books/",
+    "test:lessons": "node cli.js ../lessons/"
+  },
+  "keywords": [
+    "link-checker",
+    "markdown",
+    "documentation",
+    "parallel",
+    "worker-threads",
+    "broken-links",
+    "404",
+    "quality-assurance",
+    "ci-cd",
+    "github-actions"
+  ],
+  "author": "n0bisuke",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/n0bisuke/linkchecker.git"
+  },
+  "homepage": "https://github.com/n0bisuke/linkchecker",
+  "bugs": {
+    "url": "https://github.com/n0bisuke/linkchecker/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "index.js",
+    "cli.js",
+    "check-links.js",
+    "link-checker-worker.js",
+    "README.md",
+    "CLAUDE.md"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "preferGlobal": false
+}
