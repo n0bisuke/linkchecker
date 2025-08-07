@@ -249,6 +249,7 @@ jobs:
 **他のリポジトリから利用する場合:**
 
 `uses: {オーナー名}/{リポジトリ名}@{ブランチ名またはタグ}` の形式で指定します。
+
 例: `uses: n0bisuke/linkchecker@main`
 
 `.github/workflows/check-links.yml` (例):
@@ -283,13 +284,14 @@ jobs:
 
 **このリポジトリ内で利用する場合:**
 
-`uses: ./` の形式で指定します。
+`action.yml`がリポジトリのルートにあるため、`uses: ./` の形式で指定します。
 
 ```yaml
-# ... (上記と同じワークフロー内容)
+# .github/workflows/in-repo-check.yml
+# ...
       - name: Run Markdown Link Checker
         id: link-check # このステップにIDを付与
-        uses: ./ # action.ymlがあるディレクトリへのパス
+        uses: ./ # action.ymlがあるリポジトリのルートを指定
         with:
           directory: './docs' # 例: docsフォルダ
 # ...
@@ -305,7 +307,7 @@ jobs:
 
 ### レポートを自動コミットするワークフロー
 
-以下のワークフローは、`link-check-report.json`を生成し、変更があった場合に自動でリポジトリにコミットしてプッシュします。これにより、常に最新のリンクチェックレポートをリポジトリで管理できます。
+以下のワークフローは、**このリポジトリ内**で`link-check-report.json`を生成し、変更があった場合に自動でリポジトリにコミットしてプッシュします。
 
 **注意点:**
 *   このワークフローが`push`をトリガーに実行されると、ワークフロー自体が`push`を行うため、無限ループが発生する可能性があります。これを防ぐため、コミットメッセージに`[skip ci]`を含めています。
@@ -335,7 +337,7 @@ jobs:
 
       - name: Run Markdown Link Checker
         id: link-check
-        uses: ./tools # action.ymlがあるディレクトリへのパス
+        uses: ./ # このリポジトリのルートディレクトリを指定
         with:
           directory: '.' # チェックしたいディレクトリを指定
 

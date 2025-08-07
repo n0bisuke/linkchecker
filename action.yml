@@ -9,7 +9,7 @@ outputs:
   broken_links_count:
     description: 'The number of broken links found'
 runs:
-  using: 'node16'
+  using: 'node20'
   pre:
     - run: npm install
       shell: bash
