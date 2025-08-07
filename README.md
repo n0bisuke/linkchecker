@@ -30,12 +30,12 @@ npx handson-md-link-checker ./docs
 
 ```bash
 # 基本的な使用方法
-po-link-checker                    # カレントディレクトリをチェック
-po-link-checker ./docs             # docsディレクトリをチェック  
-po-link-checker ./article.md       # 特定のファイルをチェック
+md-link-checker                    # カレントディレクトリをチェック
+md-link-checker ./docs             # docsディレクトリをチェック  
+md-link-checker ./article.md       # 特定のファイルをチェック
 
 # ヘルプ表示
-po-link-checker --help
+md-link-checker --help
 ```
 
 ### CLI出力例
@@ -228,7 +228,7 @@ jobs:
         run: npm install -g handson-md-link-checker
         
       - name: Check Links
-        run: po-link-checker ./docs
+        run: md-link-checker ./docs
         
       - name: Upload Report
         if: always()

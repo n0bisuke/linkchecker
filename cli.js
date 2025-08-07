@@ -8,16 +8,16 @@ function showHelp() {
 handson-md-link-checker - 高性能並列処理マークダウンリンクチェッカー
 
 使用方法:
-  po-link-checker [directory]
+  md-link-checker [directory]
 
 オプション:
   directory    チェック対象のディレクトリまたはファイル（デフォルト: カレントディレクトリ）
   -h, --help   このヘルプを表示
 
 例:
-  po-link-checker                    # カレントディレクトリをチェック
-  po-link-checker ./docs             # docsディレクトリをチェック
-  po-link-checker ./article.md       # 特定のファイルをチェック
+  md-link-checker                    # カレントディレクトリをチェック
+  md-link-checker ./docs             # docsディレクトリをチェック
+  md-link-checker ./article.md       # 特定のファイルをチェック
 
 機能:
   ✓ Worker Threadsによる高速並列処理（最大16ワーカー）
@@ -74,7 +74,7 @@ async function main() {
     }
     
     console.error('');
-    console.error('ヘルプを表示するには: po-link-checker --help');
+    console.error('ヘルプを表示するには: md-link-checker --help');
     
     process.exit(1);
   }

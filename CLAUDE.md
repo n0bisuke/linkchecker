@@ -17,9 +17,9 @@ handson-md-link-checker is a sophisticated npm package designed to detect broken
 ### Execution Methods
 ```bash
 # CLI usage (after npm install -g handson-md-link-checker)
-po-link-checker [directory]                    # Check directory or file
-po-link-checker ./docs                         # Check docs folder
-po-link-checker --help                         # Show help
+md-link-checker [directory]                    # Check directory or file
+md-link-checker ./docs                         # Check docs folder
+md-link-checker --help                         # Show help
 
 # npx usage (one-time execution)
 npx handson-md-link-checker ./docs
@@ -148,10 +148,10 @@ schedule:
 ### Development Workflow
 ```bash
 # Before committing changes
-po-link-checker ./docs
+md-link-checker ./docs
 
 # Check specific file
-po-link-checker ./path/to/file.md
+md-link-checker ./path/to/file.md
 
 # Using npx for one-time check
 npx handson-md-link-checker ./docs
@@ -202,7 +202,7 @@ node -e "const LinkChecker = require('handson-md-link-checker'); new LinkChecker
 
 ### Package Structure
 - **npm package**: `handson-md-link-checker`
-- **CLI command**: `po-link-checker`
+- **CLI command**: `md-link-checker`
 - **GitHub repository**: https://github.com/n0bisuke/linkchecker
 - **npm registry**: https://www.npmjs.com/package/handson-md-link-checker
 
