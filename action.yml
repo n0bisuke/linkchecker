@@ -10,7 +10,5 @@ outputs:
     description: 'The number of broken links found'
 runs:
   using: 'node20'
-  pre:
-    - run: npm install
-      shell: bash
+  pre: 'pre-install.js'
   main: 'cli.js'
