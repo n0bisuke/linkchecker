@@ -10,4 +10,7 @@ outputs:
     description: 'The number of broken links found'
 runs:
   using: 'node16'
+  pre:
+    - run: npm install
+      shell: bash
   main: 'cli.js'

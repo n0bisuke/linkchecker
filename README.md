@@ -244,7 +244,12 @@ jobs:
 
 ### アクションとして使用する (推奨)
 
-`action.yml`をプロジェクト内に配置することで、このツールをGitHub Actionsのカスタムアクションとして直接利用できます。これにより、依存関係のインストール手順を省略し、より簡潔なワークフローを記述できます。
+このツールをGitHub Actionsのカスタムアクションとして直接利用できます。これにより、依存関係のインストール手順を省略し、より簡潔なワークフローを記述できます。
+
+**他のリポジトリから利用する場合:**
+
+`uses: {オーナー名}/{リポジトリ名}@{ブランチ名またはタグ}` の形式で指定します。
+例: `uses: n0bisuke/linkchecker@main`
 
 `.github/workflows/check-links.yml` (例):
 
@@ -269,17 +274,25 @@ jobs:
 
       - name: Run Markdown Link Checker
         id: link-check # このステップにIDを付与
-        uses: ./tools # action.ymlがあるディレクトリへのパス
+        # n0bisuke/linkchecker リポジトリの main ブランチにあるアクションを指定
+        uses: n0bisuke/linkchecker@main
         with:
-          directory: './docs' # チェックしたいディレクトリを指定 (例: docsフォルダ)
+          # このワークフローを実行しているリポジトリ内のチェックしたいディレクトリを指定
+          directory: './docs' # 例: docsフォルダ
+```
 
-      - name: Report Broken Links
-        run: |
-          echo "Found ${{ steps.link-check.outputs.broken_links_count }} broken links."
-          if [ "${{ steps.link-check.outputs.broken_links_count }}" -gt 0 ]; then
-            echo "::error::Broken links found! Please check the report."
-            exit 1
-          fi
+**このリポジトリ内で利用する場合:**
+
+`uses: ./` の形式で指定します。
+
+```yaml
+# ... (上記と同じワークフロー内容)
+      - name: Run Markdown Link Checker
+        id: link-check # このステップにIDを付与
+        uses: ./ # action.ymlがあるディレクトリへのパス
+        with:
+          directory: './docs' # 例: docsフォルダ
+# ...
 ```
 
 **入力 (`inputs`)**:
@@ -289,6 +302,60 @@ jobs:
 **出力 (`outputs`)**:
 
 *   `broken_links_count`: 見つかった壊れたリンクの数。
+
+### レポートを自動コミットするワークフロー
+
+以下のワークフローは、`link-check-report.json`を生成し、変更があった場合に自動でリポジトリにコミットしてプッシュします。これにより、常に最新のリンクチェックレポートをリポジトリで管理できます。
+
+**注意点:**
+*   このワークフローが`push`をトリガーに実行されると、ワークフロー自体が`push`を行うため、無限ループが発生する可能性があります。これを防ぐため、コミットメッセージに`[skip ci]`を含めています。
+*   ワークフローがリポジトリに書き込む（`git push`する）ためには、`contents: write`権限が必要です。
+
+`.github/workflows/check-links-and-commit.yml` (例):
+
+```yaml
+name: Check Links and Commit Report
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 手動実行を可能にする
+
+jobs:
+  check-and-commit:
+    runs-on: ubuntu-latest
+    # ジョブにリポジトリへの書き込み権限を付与します
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Markdown Link Checker
+        id: link-check
+        uses: ./tools # action.ymlがあるディレクトリへのパス
+        with:
+          directory: '.' # チェックしたいディレクトリを指定
+
+      - name: Commit and push if report changed
+        run: |
+          # Gitのユーザー情報を設定
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          # 変更があるか確認
+          if [[ -n $(git status --porcelain link-check-report.json) ]]; then
+            echo "Report has changes. Committing and pushing..."
+            git add link-check-report.json
+            # [skip ci] を含めて無限ループを防止
+            git commit -m "docs: Update link check report [skip ci]"
+            git push
+          else
+            echo "No changes to the report. Nothing to commit."
+          fi
+```
 
 ## 設定オプション
 
