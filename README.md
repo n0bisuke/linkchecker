@@ -1,5 +1,7 @@
 # handson-md-link-checker
 
+※AIが書いてます。
+
 高性能並列処理マークダウンリンクチェッカー - Markdown文書内の壊れたリンク（404/410エラー）を正確に検出
 
 ## 特徴
@@ -280,7 +282,7 @@ Repository: https://github.com/n0bisuke/linkchecker
 
 ## リリースノート
 
-### v1.0.0
+### v0.0.1
 - 初回リリース
 - Worker Threads による並列処理
 - 日本語プレースホルダー除外機能
