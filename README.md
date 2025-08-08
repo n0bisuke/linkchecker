@@ -30,10 +30,11 @@ npx handson-md-link-checker ./docs
 
 ```bash
 # 基本的な使用方法
-md-link-checker                              # カレントディレクトリをチェック
-md-link-checker ./docs                       # docsディレクトリをチェック  
+md-link-checker                               # カレントディレクトリをチェック
+md-link-checker ./docs                        # docsディレクトリをチェック  
 md-link-checker --ignore-github-auth ./docs  # GitHub認証ページを除外してチェック
-md-link-checker ./article.md                 # 特定のファイルをチェック
+md-link-checker --explicit-links-only ./docs # 明示的リンクのみチェック
+md-link-checker ./article.md                  # 特定のファイルをチェック
 
 # ヘルプ表示
 md-link-checker --help
@@ -121,6 +122,7 @@ const checker = new LinkChecker({
   timeout: 5000,           // タイムアウト時間（ms）
   batchSize: 50,           // バッチサイズ
   ignoreGithubAuth: true,  // GitHub認証必要ページを除外
+  explicitLinksOnly: true, // 明示的リンクのみをチェック
   excludePatterns: [       // 追加の除外パターン
     /internal\.example\.com/,
     /test\.localhost/
@@ -180,11 +182,17 @@ console.log(`${brokenLinks.length} 個の壊れたリンクが見つかりまし
 
 ## サポートするURL形式
 
+### 明示的リンク（常にチェック）
 - Markdownリンク: `[テキスト](https://example.com)`
 - HTMLリンク: `<a href="https://example.com">テキスト</a>`
 - HTML画像: `<img src="https://example.com/image.jpg">`
-- 直接URL: `https://example.com`
 - 壊れたMarkdown: `[テキスト](url](url)` などの記載ミス
+
+### 暗示的リンク（オプションで除外可能）
+- 直接URL: `https://example.com`
+- 技術文書の説明用URL: `API: \`https://api.example.com/v1/users\``
+
+`--explicit-links-only` オプションを使用すると、暗示的リンクをスキップして明示的リンクのみをチェックします。これにより、技術文書でのAPI説明などで発生する偽陽性を回避できます。
 
 ## 自動除外パターン
 
@@ -340,6 +348,25 @@ jobs:
           path: link-check-report.json
 ```
 
+### ワークフローの挙動について
+
+**リンク切れを検出した場合、ワークフローは「失敗」します**
+
+このアクションは、壊れたリンクを1つでも検出すると、意図的にワークフローを失敗させます（非ゼロの終了コードを返します）。これは、問題の存在を明確に知らせるための、CI/CDツールにおける一般的な挙動です。
+
+もし、リンク切れが見つかってもワークフローを止めずに後続の処理を続けたい場合は、`continue-on-error` オプションを利用してください。
+
+**continue-on-error の使用例:**
+
+```yaml
+      - name: Run Markdown Link Checker
+        id: link-check
+        uses: n0bisuke/linkchecker@main
+        continue-on-error: true # リンク切れがあってもワークフローを止めない
+        with:
+          directory: '.'
+```
+
 ## 設定オプション
 
 | オプション | デフォルト | 説明 |
@@ -347,6 +374,8 @@ jobs:
 | `maxWorkers` | CPU数×4（最大16） | 並列ワーカー数 |
 | `timeout` | 8000 | HTTPリクエストタイムアウト（ms） |
 | `batchSize` | 100 | バッチ処理サイズ |
+| `ignoreGithubAuth` | false | GitHub認証必要ページを除外 |
+| `explicitLinksOnly` | false | 明示的リンクのみをチェック |
 | `excludePatterns` | [内蔵パターン] | 追加の除外正規表現 |
 
 ## パフォーマンス

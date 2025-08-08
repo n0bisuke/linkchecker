@@ -14,11 +14,13 @@ handson-md-link-checker - 高性能並列処理マークダウンリンクチェ
   directory                チェック対象のディレクトリまたはファイル（デフォルト: カレントディレクトリ）
   -h, --help              このヘルプを表示
   --ignore-github-auth    GitHub認証が必要なページを除外（推奨）
+  --explicit-links-only   明示的リンクのみをチェック（[text](url)、<a href>など）
 
 例:
   md-link-checker                              # カレントディレクトリをチェック
   md-link-checker ./docs                       # docsディレクトリをチェック
   md-link-checker --ignore-github-auth ./docs  # GitHub認証ページを除外してチェック
+  md-link-checker --explicit-links-only ./docs # 明示的リンクのみをチェック
   md-link-checker ./article.md                 # 特定のファイルをチェック
 
 機能:
@@ -54,6 +56,7 @@ async function main() {
   
   // オプションの解析
   const ignoreGithubAuth = args.includes('--ignore-github-auth');
+  const explicitLinksOnly = args.includes('--explicit-links-only');
   
   // オプションを除いた引数からディレクトリを取得
   const directory = args.filter(arg => !arg.startsWith('--'))[0] || '.';
@@ -67,9 +70,12 @@ async function main() {
     if (ignoreGithubAuth) {
       console.log(`🔐 GitHub認証ページを除外モード: 有効`);
     }
+    if (explicitLinksOnly) {
+      console.log(`📝 明示的リンクのみチェックモード: 有効`);
+    }
     console.log('');
     
-    const checker = new LinkChecker({ ignoreGithubAuth });
+    const checker = new LinkChecker({ ignoreGithubAuth, explicitLinksOnly });
     await checker.run(targetPath);
     
   } catch (error) {

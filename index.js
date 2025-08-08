@@ -54,6 +54,10 @@ class LinkChecker extends LinkCheckerClass {
     if (options.ignoreGithubAuth !== undefined) {
       this.ignoreGithubAuth = options.ignoreGithubAuth;
     }
+    
+    if (options.explicitLinksOnly !== undefined) {
+      this.explicitLinksOnly = options.explicitLinksOnly;
+    }
   }
   
   /**
@@ -196,4 +200,5 @@ module.exports.default = LinkChecker;
  * @property {RegExp[]} [excludePatterns] - 除外パターンの追加
  * @property {number} [batchSize] - バッチサイズ（デフォルト: 100）
  * @property {boolean} [ignoreGithubAuth] - GitHub認証が必要なページを除外（デフォルト: false）
+ * @property {boolean} [explicitLinksOnly] - 明示的リンクのみをチェック（デフォルト: false）
  */

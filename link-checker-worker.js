@@ -3,6 +3,7 @@ const { parentPort } = require('worker_threads');
 class LinkCheckerWorker {
   constructor(options = {}) {
     this.ignoreGithubAuth = options.ignoreGithubAuth || false;
+    this.explicitLinksOnly = options.explicitLinksOnly || false;
     this.excludePatterns = [
       /^mailto:/,
       /^tel:/,

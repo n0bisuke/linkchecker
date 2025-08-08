@@ -24,7 +24,9 @@ class LinkChecker {
     this.brokenLinks = [];
     this.checkedUrls = new Set();
     this.ignoreGithubAuth = options.ignoreGithubAuth || false;
+    this.explicitLinksOnly = options.explicitLinksOnly || false;
     this.githubAuthPagesSkipped = 0;
+    this.implicitLinksSkipped = 0;
     this.excludePatterns = [
       /^mailto:/,
       /^tel:/,
@@ -254,8 +256,29 @@ class LinkChecker {
     return url;
   }
 
+  /**
+   * コンテキスト分析による文書説明用URLの判定
+   */
+  isDocumentationUrl(line, url) {
+    // 説明用URLのパターン
+    const docPatterns = [
+      /API[：:]\s*`[^`]*$/,                    // API: `https://...`
+      /エンドポイント[：:]/,                   // エンドポイント: https://...
+      /ベースURL[：:]/,                        // ベースURL: https://...
+      /例[：:]\s*https/,                       // 例: https://...
+      /サンプル[：:]/,                         // サンプル: https://...
+      /URL[：:]/,                             // URL: https://...
+      /パス[：:]/,                            // パス: https://...
+      /-\s+API[：:]/,                         // - API: https://...
+      /\*\s+API[：:]/,                        // * API: https://...
+    ];
+    
+    return docPatterns.some(pattern => pattern.test(line));
+  }
+
   extractLinks(content) {
     const links = [];
+    const lines = content.split('\n');
     
     // Markdown link pattern: [text](url)
     const markdownLinks = content.match(/\[([^\]]*)\]\(([^)]+)\)/g) || [];
@@ -264,7 +287,7 @@ class LinkChecker {
       if (urlMatch) {
         let url = this.cleanUrl(urlMatch[2]);
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          links.push(url);
+          links.push({ url, type: 'explicit', source: 'markdown' });
         }
       }
     });
@@ -277,7 +300,7 @@ class LinkChecker {
         // 最初のURLを使用
         let url = this.cleanUrl(urlMatch[2]);
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          links.push(url);
+          links.push({ url, type: 'explicit', source: 'broken-markdown' });
         }
       }
     });
@@ -289,16 +312,9 @@ class LinkChecker {
       if (urlMatch) {
         let url = this.cleanUrl(urlMatch[1]);
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          links.push(url);
+          links.push({ url, type: 'explicit', source: 'img' });
         }
       }
-    });
-
-    // Direct URL pattern
-    const directUrls = content.match(/https?:\/\/[^\s\)]+/g) || [];
-    directUrls.forEach(rawUrl => {
-      let url = this.cleanUrl(rawUrl);
-      links.push(url);
     });
 
     // HTML anchor tags
@@ -308,12 +324,41 @@ class LinkChecker {
       if (urlMatch) {
         let url = this.cleanUrl(urlMatch[1]);
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          links.push(url);
+          links.push({ url, type: 'explicit', source: 'anchor' });
         }
       }
     });
 
-    return [...new Set(links)]; // Remove duplicates
+    // Direct URL pattern (暗示的)
+    const directUrls = content.match(/https?:\/\/[^\s\)]+/g) || [];
+    directUrls.forEach(rawUrl => {
+      let url = this.cleanUrl(rawUrl);
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // URLが含まれている行を特定
+        const lineContainingUrl = lines.find(line => line.includes(rawUrl)) || '';
+        const isDocUrl = this.isDocumentationUrl(lineContainingUrl, url);
+        
+        links.push({ 
+          url, 
+          type: 'implicit', 
+          source: 'direct',
+          isDocumentation: isDocUrl 
+        });
+      }
+    });
+
+    // 重複除去（URLベース）
+    const uniqueLinks = [];
+    const seenUrls = new Set();
+    
+    for (const linkObj of links) {
+      if (!seenUrls.has(linkObj.url)) {
+        seenUrls.add(linkObj.url);
+        uniqueLinks.push(linkObj);
+      }
+    }
+
+    return uniqueLinks;
   }
 
   async checkFile(filePath) {
@@ -324,9 +369,23 @@ class LinkChecker {
       // ファイル内の全リンクを収集
       const linkTasks = [];
       for (let i = 0; i < lines.length; i++) {
-        const links = this.extractLinks(lines[i]);
-        for (const url of links) {
-          linkTasks.push({ url, filePath, lineNumber: i + 1 });
+        const linkObjects = this.extractLinks(lines[i]);
+        for (const linkObj of linkObjects) {
+          // explicitLinksOnlyオプションが有効な場合、暗示的リンクをスキップ
+          if (this.explicitLinksOnly && linkObj.type === 'implicit') {
+            this.implicitLinksSkipped++;
+            console.log(`  📝 暗示的リンクをスキップ: ${linkObj.url}`);
+            continue;
+          }
+          
+          linkTasks.push({ 
+            url: linkObj.url, 
+            filePath, 
+            lineNumber: i + 1,
+            linkType: linkObj.type,
+            linkSource: linkObj.source,
+            isDocumentation: linkObj.isDocumentation
+          });
         }
       }
       
@@ -433,7 +492,10 @@ class LinkChecker {
 
         workerInfo.worker.postMessage({ 
           tasks: chunk, 
-          options: { ignoreGithubAuth: this.ignoreGithubAuth }
+          options: { 
+            ignoreGithubAuth: this.ignoreGithubAuth,
+            explicitLinksOnly: this.explicitLinksOnly
+          }
         });
 
         const onMessage = (result) => {
@@ -510,9 +572,12 @@ class LinkChecker {
     
     console.log('\n✅ Link check completed');
     
-    // GitHub認証ページのスキップ数を表示
+    // スキップ数の表示
     if (this.ignoreGithubAuth && this.githubAuthPagesSkipped > 0) {
       console.log(`🔐 GitHub認証必要ページを ${this.githubAuthPagesSkipped} 個スキップしました`);
+    }
+    if (this.explicitLinksOnly && this.implicitLinksSkipped > 0) {
+      console.log(`📝 暗示的リンクを ${this.implicitLinksSkipped} 個スキップしました`);
     }
     
     if (this.brokenLinks.length > 0) {
